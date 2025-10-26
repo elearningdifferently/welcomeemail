@@ -15,3 +15,14 @@ $string['subjecttemplate_default'] = 'Welcome to [[coursename]]';
 $string['messagetemplate'] = 'Message body template';
 $string['messagetemplate_desc'] = 'Define the body of the welcome email. You can use the same tokens as in the subject template plus [[courselink]] to include a link to the course.';
 $string['messagetemplate_default'] = "Hello [[studentfirstname]],\n\nWelcome to \"[[coursename]]\". We are delighted to have you join this course.\n\nYou can access the course using the link below:\n[[courselink]]\n\nBest regards,\nThe Course Team";
+
+// Test email strings.
+$string['testemail_heading'] = 'Test email';
+$string['testemail_heading_desc'] = 'Send a test welcome email to verify your configuration.';
+$string['testemail'] = 'Test email address';
+$string['testemail_desc'] = 'Enter an email address where the test message should be sent.';
+$string['testemail_button'] = 'Send test email';
+$string['testemail_success'] = 'Test email has been sent to {$a}';
+$string['testemail_error'] = 'Failed to send test email. Please check your email configuration.';
+$string['testemail_invalidemail'] = 'Please enter a valid email address.';
+

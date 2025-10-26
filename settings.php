@@ -13,6 +13,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Include the custom admin setting class.
+require_once($CFG->dirroot . '/local/welcomeemail/classes/admin_setting_test_email.php');
+
 // Only add settings if the user has the capability to manage site configuration.
 if ($hassiteconfig) {
     // Create a new settings page under the "Local plugins" category.
@@ -35,6 +38,16 @@ if ($hassiteconfig) {
         get_string('messagetemplate', 'local_welcomeemail'),
         get_string('messagetemplate_desc', 'local_welcomeemail'),
         get_string('messagetemplate_default', 'local_welcomeemail')));
+
+    // Test email section.
+    $settings->add(new admin_setting_heading('local_welcomeemail_testemail_heading',
+        get_string('testemail_heading', 'local_welcomeemail'),
+        get_string('testemail_heading_desc', 'local_welcomeemail')));
+
+    // Test email custom setting with email input and send button.
+    $settings->add(new \local_welcomeemail\admin_setting_test_email('local_welcomeemail/testemail',
+        get_string('testemail', 'local_welcomeemail'),
+        get_string('testemail_desc', 'local_welcomeemail')));
 
     // Add the settings page into the "Local plugins" section of the admin tree.
     $ADMIN->add('localplugins', $settings);
