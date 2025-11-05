@@ -17,7 +17,12 @@ defined('MOODLE_INTERNAL') || die();
  * @param object $mform The actual form object
  */
 function local_welcomeemail_course_edit_form($formwrapper, $mform) {
-    global $COURSE;
+    global $COURSE, $DB;
+
+    // Skip if we don't have a valid course ID.
+    if (empty($COURSE->id) || $COURSE->id <= 0) {
+        return;
+    }
 
     // Get the current setting value (default to 0/disabled).
     $courseid = $COURSE->id;
@@ -46,6 +51,11 @@ function local_welcomeemail_course_edit_form($formwrapper, $mform) {
  * @param object $course The course object
  */
 function local_welcomeemail_course_edit_submit($data, $course) {
+    // Skip if we don't have a valid course ID.
+    if (empty($course->id) || $course->id <= 0) {
+        return;
+    }
+    
     $enabled = isset($data->welcomeemail_enabled) ? $data->welcomeemail_enabled : 0;
     set_config('course_' . $course->id . '_enabled', $enabled, 'local_welcomeemail');
 }
