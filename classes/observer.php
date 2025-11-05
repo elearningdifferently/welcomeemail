@@ -43,6 +43,12 @@ class observer {
         $courseid = $event->courseid;
         $course = get_course($courseid);
 
+        // Check if welcome emails are enabled for this course (default: disabled).
+        $enabled = get_config('local_welcomeemail', 'course_' . $courseid . '_enabled');
+        if (!$enabled) {
+            return; // Welcome emails are disabled for this course.
+        }
+
         // Build the link to the course.
         $courselink = (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
 

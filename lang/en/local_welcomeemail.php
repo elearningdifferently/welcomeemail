@@ -26,3 +26,9 @@ $string['testemail_success'] = 'Test email has been sent to {$a}';
 $string['testemail_error'] = 'Failed to send test email. Please check your email configuration.';
 $string['testemail_invalidemail'] = 'Please enter a valid email address.';
 
+// Course-specific settings strings.
+$string['welcomeemail_course_header'] = 'Welcome email';
+$string['welcomeemail_course_enable'] = 'Enable welcome emails for this course';
+$string['welcomeemail_course_enable_desc'] = 'Send a welcome email when students are enrolled in this course';
+$string['welcomeemail_course_enable_help'] = 'When enabled, students will receive a welcome email when they are enrolled in this course. You can configure the email template in the plugin settings.';
+
