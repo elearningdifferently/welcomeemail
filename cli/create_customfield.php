@@ -34,7 +34,7 @@ if ($options['help']) {
 }
 
 require_once($CFG->dirroot . '/customfield/classes/api.php');
-require_once($CFG->dirroot . '/customfield/field/checkbox/classes/field_controller.php');
+require_once($CFG->dirroot . '/course/classes/customfield/course_handler.php');
 
 $shortname = $options['shortname'];
 $displayname = $options['name'];
@@ -46,79 +46,68 @@ if (!preg_match('/^[a-z0-9_]+$/', $shortname)) {
     cli_error('Shortname must be lowercase alphanumeric underscore.');
 }
 
-$admin = get_admin();
-if (!$admin) {
-    cli_error('Admin user not found.');
-}
+try {
+    $handler = \core_course\customfield\course_handler::create();
 
-// Ensure capability context (system).
-$syscontext = context_system::instance();
-
-$transaction = $DB->start_delegated_transaction();
-
-// Find or create category.
-$category = $DB->get_record('customfield_category', [
-    'name' => $categoryname,
-    'component' => 'core_course',
-    'area' => 'course',
-]);
-if (!$category) {
-    $category = (object) [
-        'name' => $categoryname,
-        'component' => 'core_course',
-        'area' => 'course',
-        'sortorder' => 0,
-        'id' => null,
-        'timecreated' => time(),
-        'timemodified' => time(),
-    ];
-    $category->id = $DB->insert_record('customfield_category', $category);
-    echo "Created category '{$categoryname}' (id={$category->id})\n";
-}
-
-// Check for existing field.
-$field = $DB->get_record_sql("SELECT f.* FROM {customfield_field} f
-    WHERE f.component='core_course' AND f.area='course' AND f.shortname = :shortname", ['shortname' => $shortname]);
-if ($field) {
-    if ($force) {
-        // Delete existing field + its data (cascades not automatic, remove manually).
-        $DB->delete_records('customfield_data', ['fieldid' => $field->id]);
-        $DB->delete_records('customfield_field', ['id' => $field->id]);
-        echo "Deleted existing field '{$shortname}'\n";
-        $field = null;
-    } else {
-        echo "Field '{$shortname}' already exists (id={$field->id}). Nothing to do.\n";
-        $transaction->allow_commit();
-        exit(0);
+    // Find or create category using API so context/itemid are set properly.
+    $categories = \core_customfield\api::get_categories_with_fields('core_course', 'course', 0);
+    $targetcategory = null;
+    foreach ($categories as $cat) {
+        if ($cat->get('name') === $categoryname) {
+            $targetcategory = $cat;
+            break;
+        }
     }
-}
+    if (!$targetcategory) {
+        $catrecord = (object)[
+            'name' => $categoryname,
+        ];
+        $targetcategory = \core_customfield\category_controller::create(0, $catrecord, $handler);
+        \core_customfield\api::save_category($targetcategory);
+        cli_writeln("Created category '{$categoryname}' (id=".$targetcategory->get('id').")");
+    }
 
-if (!$field) {
-    $field = (object) [
+    // Check for existing field by shortname in course component/area.
+    $existing = $DB->get_record('customfield_field', [
+        'shortname' => $shortname,
+        'categoryid' => $targetcategory->get('id'),
+    ]);
+    if ($existing) {
+        if ($force) {
+            $fc = \core_customfield\field_controller::create($existing->id);
+            \core_customfield\api::delete_field_configuration($fc);
+            cli_writeln("Deleted existing field '{$shortname}'");
+            $existing = null;
+        } else {
+            cli_writeln("Field '{$shortname}' already exists (id={$existing->id}). Nothing to do.");
+            exit(0);
+        }
+    }
+
+    // Create field via API.
+    $frecord = (object) [
         'type' => 'checkbox',
+        'shortname' => $shortname,
+        'name' => $displayname,
+        'categoryid' => $targetcategory->get('id'),
+    ];
+    $field = \core_customfield\field_controller::create(0, $frecord, $targetcategory);
+    $formdata = (object) [
         'name' => $displayname,
         'shortname' => $shortname,
-        'component' => 'core_course',
-        'area' => 'course',
-        'categoryid' => $category->id,
-        'description' => 'Enable/disable sending welcome email on enrolment.',
-        'descriptionformat' => FORMAT_HTML,
-        'sortorder' => 0,
-        'required' => 0,
-        'locked' => 0,
-        'visible' => 2, // 2 = visible to all with course edit perms.
-        'timecreated' => time(),
-        'timemodified' => time(),
+        'categoryid' => $targetcategory->get('id'),
+        'type' => 'checkbox',
+        'configdata' => [
+            'defaultvalue' => '0',
+            // Course-specific visibility/locked settings live in configdata for this handler.
+            'visibility' => \core_course\customfield\course_handler::VISIBLETOALL,
+            'locked' => 0,
+        ],
     ];
-    // Checkbox stores its default in configdata JSON.
-    $config = [
-        'defaultvalue' => '0',
-    ];
-    $field->configdata = json_encode($config);
-    $field->id = $DB->insert_record('customfield_field', $field);
-    echo "Created field '{$shortname}' (id={$field->id}) in category '{$categoryname}'\n";
+    \core_customfield\api::save_field_configuration($field, $formdata);
+    cli_writeln("Created field '{$shortname}' (id=".$field->get('id').") in category '{$categoryname}'");
+
+    cli_writeln('Done.');
+} catch (\Throwable $e) {
+    cli_error('Failed: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
 }
-
-$transaction->allow_commit();
-
-echo "Done.\n";
