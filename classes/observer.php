@@ -43,10 +43,32 @@ class observer {
         $courseid = $event->courseid;
         $course = get_course($courseid);
 
-        // Check if welcome emails are enabled for this course (default: disabled).
-        $enabled = get_config('local_welcomeemail', 'course_' . $courseid . '_enabled');
-        if (!$enabled) {
-            return; // Welcome emails are disabled for this course.
+        // Determine if welcome emails are enabled via custom course field 'welcomeemail_enabled'.
+        static $cache = [];
+        if (!array_key_exists($courseid, $cache)) {
+            $value = 0;
+            try {
+                // Use the course customfield handler API for safer access.
+                $handler = \core_course\customfield\course_handler::create();
+                // Parent context might be needed for handler (category), but safe to omit for read-only.
+                $dataobjects = $handler->get_instance_data($courseid); // Returns array of data objects.
+                foreach ($dataobjects as $data) {
+                    $field = $data->get_field();
+                    if ($field && $field->get('shortname') === 'welcomeemail_enabled') {
+                        $raw = $data->get_value();
+                        // Checkbox custom field stores '1' for checked.
+                        $value = ($raw === '1' || $raw === 1) ? 1 : 0;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fail closed (disabled) if any error occurs.
+                $value = 0;
+            }
+            $cache[$courseid] = $value;
+        }
+        if (!$cache[$courseid]) {
+            return; // Not enabled for this course.
         }
 
         // Build the link to the course.

@@ -1,6 +1,6 @@
 # local_welcomeemail
 
-This plugin sends a welcome notification to users when they are enrolled into a course. It listens for the `core\event\user_enrolment_created` event and uses the Moodle Messaging API to send the notification.
+Sends a personalised welcome message to learners the moment they are enrolled into a course.
 
 ## Features
 
@@ -10,17 +10,53 @@ This plugin sends a welcome notification to users when they are enrolled into a 
 
 ## Installation
 
-1. Copy the `welcomeemail` directory to the `local` directory of your Moodle installation, resulting in `moodle/local/welcomeemail`.
-2. Log in to Moodle as an administrator and navigate to **Site administration → Notifications** to trigger the plugin installation.
-3. Review and confirm the installation steps. The plugin does not add database tables but registers a new message provider and event observer.
-4. After installation, when a user is enrolled into any course via the standard enrolment methods, the plugin will automatically send them a welcome email. The subject and body text can be customised in the language pack (`lang/en/local_welcomeemail.php`).
+1. Place `local/welcomeemail` in your Moodle codebase and visit **Site administration → Notifications** to install.
+2. (Optional) Customise subject/body templates in plugin settings or language strings.
+3. Create the Course custom field below.
+4. Enrol a test user to verify delivery.
+
+### Create the course custom field
+
+UI method:
+1. **Site administration → Courses → Custom fields**.
+2. Add/select a category (e.g. "Automation").
+3. Add *Checkbox* field:
+	- Name: Enable welcome emails
+	- Shortname: `welcomeemail_enabled`
+	- Default: Unchecked (or checked for global enable)
+	- Description: Optional explanatory text.
+4. Save.
+
+CLI method (alternative):
+
+```bash
+php local/welcomeemail/cli/create_customfield.php
+```
+
+Use `--help` for options (e.g. `--force` to recreate):
+
+```bash
+php local/welcomeemail/cli/create_customfield.php --force
+```
 
 ## Customisation
 
-- **Language strings**: To modify the welcome subject or body, edit the appropriate strings in `lang/en/local_welcomeemail.php`. The body uses placeholders `{$a->firstname}`, `{$a->coursename}` and `{$a->courselink}` to personalise the message.
-- **Message preferences**: Users can opt‑in or opt‑out of receiving welcome emails in their messaging preferences. The provider definition includes default settings that permit email delivery, but users can change these settings via **Preferences → Notification preferences**.
+- Language strings: Edit `lang/en/local_welcomeemail.php`.
+- Tokens (subject/body): `[[studentfirstname]]`, `[[studentlastname]]`, `[[studentfullname]]`, `[[coursename]]`, `[[courselink]]`.
+- Notification preferences: Users can adjust channels under **Preferences → Notification preferences**.
+- Per‑course control: Toggle custom field `welcomeemail_enabled` in course settings.
 
 ## Uninstallation
 
-To uninstall the plugin, remove the `local/welcomeemail` directory from your Moodle installation and visit **Site administration → Notifications** to complete the cleanup.
+Remove `local/welcomeemail` then visit **Site administration → Notifications**. Optionally delete the `welcomeemail_enabled` custom field.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| No email sent | Custom field missing/unchecked | Create/enable `welcomeemail_enabled` |
+| Empty template | Settings not configured | Set plugin templates or rely on language fallbacks |
+| Duplicate emails | Multiple enrol events | Review enrol plugins firing events |
+
+For deeper debugging enable developer mode and inspect mail logs.
 
